@@ -1,2 +1,9 @@
 best_model_*
 checkpoint
+/results_beltrami.csv
+/results_kovasznay.csv
+/results_lid_driven.csv
+/WAN3DNS_beltrami_results.npy
+/WAN3DNS_kovasznay_results.npy
+/WAN3DNS_lid_driven_results.npy
+/WAN3DNS_beltrami_results.npy
