@@ -1,0 +1,13 @@
+{
+    "u_rate": 0.001,
+    "v_rate": 0.001,
+    "beta_int": 1.0,
+    "beta_intw": 1.0,
+    "beta_bd": 1.0,
+    "dm_size": 20000,
+    "bd_size": 5000,
+    "training_epochs": 20000,
+    "layers": [50, 50, 50, 50, 50, 50],
+    "patience": 8000,
+    "Re": 1.0
+}
