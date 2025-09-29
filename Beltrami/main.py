@@ -8,10 +8,10 @@ import csv
 import os
 import matplotlib.pyplot as plt
 import json
-import argparse  # 添加命令行参数解析模块
+import argparse  # Add command line argument parsing module
 from mpl_toolkits.mplot3d import Axes3D
 
-# 使用TensorFlow 1.x兼容模式
+# Use TensorFlow 1.x compatibility mode
 tf.compat.v1.disable_v2_behavior()
 
 class WAN3DNS:
@@ -98,7 +98,7 @@ class WAN3DNS:
                 return tf.zeros_like(x)
             return tf.where(tf.math.is_nan(grads), tf.zeros_like(grads), grads)
         except Exception as e:
-            print(f"梯度计算错误: {e}")
+            print(f"Gradient calculation error: {e}")
             return tf.zeros_like(x)
     
     def grad_u(self, x, name):
@@ -109,13 +109,13 @@ class WAN3DNS:
             w = u_v_w_p[:, 2:3]
             p = u_v_w_p[:, 3:4]
             
-            # 使用安全的梯度计算
+            # Use safe gradient calculation
             grad_u_x = self.safe_gradients(u, x)
             grad_v_x = self.safe_gradients(v, x)
             grad_w_x = self.safe_gradients(w, x)
             grad_p_x = self.safe_gradients(p, x)
             
-            # 计算二阶导数
+            # Calculate second derivatives
             u_xx = self.safe_gradients(grad_u_x[:, 0:1], x)[:, 0:1]
             u_yy = self.safe_gradients(grad_u_x[:, 1:2], x)[:, 1:2]
             u_zz = self.safe_gradients(grad_u_x[:, 2:3], x)[:, 2:3]
@@ -137,14 +137,14 @@ class WAN3DNS:
     
     def grad_v(self, x, name):
         with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
-            # v网络的输出为4维：s, l, m, n
+            # v network output is 4-dimensional: s, l, m, n
             s_l_m_n = self.neural_net(x, self.weights2, self.biases2)
-            s = s_l_m_n[:, 0:1]  # 标量测试函数，用于连续性方程
-            l = s_l_m_n[:, 1:2]  # 向量测试函数的x分量
-            m = s_l_m_n[:, 2:3]  # 向量测试函数的y分量
-            n = s_l_m_n[:, 3:4]  # 向量测试函数的z分量
+            s = s_l_m_n[:, 0:1]  # Scalar test function for continuity equation
+            l = s_l_m_n[:, 1:2]  # x-component of vector test function
+            m = s_l_m_n[:, 2:3]  # y-component of vector test function
+            n = s_l_m_n[:, 3:4]  # z-component of vector test function
             
-            # 使用安全的梯度计算
+            # Use safe gradient calculation
             grad_s = self.safe_gradients(s, x)
             grad_l = self.safe_gradients(l, x)
             grad_m = self.safe_gradients(m, x)
@@ -154,30 +154,30 @@ class WAN3DNS:
                    tf.concat([grad_s, grad_l, grad_m, grad_n], axis=1))
     
     def create_test_functions_from_v_output(self, v_output, x):
-        """从v网络的输出创建测试函数"""
-        # v_output 的形状是 [batch_size, 4]
-        # 第一个分量是标量测试函数s，后三个分量是向量测试函数的分量l, m, n
+        """Create test functions from v network output"""
+        # v_output shape is [batch_size, 4]
+        # First component is scalar test function s, next three components are vector test function components l, m, n
         
-        s = v_output[:, 0:1]  # 标量测试函数
-        l = v_output[:, 1:2]  # 向量测试函数的x分量
-        m = v_output[:, 2:3]  # 向量测试函数的y分量
-        n = v_output[:, 3:4]  # 向量测试函数的z分量
+        s = v_output[:, 0:1]  # Scalar test function
+        l = v_output[:, 1:2]  # x-component of vector test function
+        m = v_output[:, 2:3]  # y-component of vector test function
+        n = v_output[:, 3:4]  # z-component of vector test function
         
-        # 返回标量测试函数和向量测试函数
+        # Return scalar test function and vector test function
         return s, (l, m, n)
     
     def compute_weak_residuals(self, u, p, s_test_func, v_test_func, nu, x):
-        """计算弱形式残差"""
-        # 提取速度分量和压力
+        """Calculate weak form residuals"""
+        # Extract velocity components and pressure
         u_comp = u[:, 0:1]
         v_comp = u[:, 1:2]
         w_comp = u[:, 2:3]
         p_comp = p
         
-        # 提取向量测试函数的分量
+        # Extract components of vector test function
         l, m, n = v_test_func
         
-        # 计算速度梯度
+        # Calculate velocity gradients
         u_x = self.safe_gradients(u_comp, x)
         u_y = self.safe_gradients(u_comp, x)
         u_z = self.safe_gradients(u_comp, x)
@@ -193,7 +193,7 @@ class WAN3DNS:
         w_z = self.safe_gradients(w_comp, x)
         w_t = self.safe_gradients(w_comp, x)
         
-        # 计算二阶导数（拉普拉斯项）
+        # Calculate second derivatives (Laplacian terms)
         u_xx = self.safe_gradients(u_x[:, 0:1], x)[:, 0:1]
         u_yy = self.safe_gradients(u_x[:, 1:2], x)[:, 1:2]
         u_zz = self.safe_gradients(u_x[:, 2:3], x)[:, 2:3]
@@ -206,29 +206,29 @@ class WAN3DNS:
         w_yy = self.safe_gradients(w_x[:, 1:2], x)[:, 1:2]
         w_zz = self.safe_gradients(w_x[:, 2:3], x)[:, 2:3]
         
-        # 计算散度 (连续性方程)
+        # Calculate divergence (continuity equation)
         div_u = u_x[:, 0:1] + v_y[:, 1:2] + w_z[:, 2:3]
         
-        # 计算压力梯度
+        # Calculate pressure gradient
         p_x = self.safe_gradients(p_comp, x)[:, 0:1]
         p_y = self.safe_gradients(p_comp, x)[:, 1:2]
         p_z = self.safe_gradients(p_comp, x)[:, 2:3]
         
-        # 计算对流项 (u·∇)u
+        # Calculate convection term (u·∇)u
         conv_u = u_comp * u_x[:, 0:1] + v_comp * u_y[:, 1:2] + w_comp * u_z[:, 2:3]
         conv_v = u_comp * v_x[:, 0:1] + v_comp * v_y[:, 1:2] + w_comp * v_z[:, 2:3]
         conv_w = u_comp * w_x[:, 0:1] + v_comp * w_y[:, 1:2] + w_comp * w_z[:, 2:3]
         
-        # 计算动量方程的强形式残差
+        # Calculate strong form residuals of momentum equations
         f_u = u_t[:, 3:4] + conv_u + p_x - nu * (u_xx + u_yy + u_zz)
         f_v = v_t[:, 3:4] + conv_v + p_y - nu * (v_xx + v_yy + v_zz)
         f_w = w_t[:, 3:4] + conv_w + p_z - nu * (w_xx + w_yy + w_zz)
         
-        # 计算弱形式残差
-        # 连续性方程的弱形式: ∫ (∇·u) s dx
+        # Calculate weak form residuals
+        # Weak form of continuity equation: ∫ (∇·u) s dx
         weak_continuity = tf.reduce_mean(div_u * s_test_func)
         
-        # 动量方程的弱形式: ∫ [∂u/∂t + (u·∇)u + ∇p - νΔu] · v dx
+        # Weak form of momentum equations: ∫ [∂u/∂t + (u·∇)u + ∇p - νΔu] · v dx
         weak_momentum = tf.reduce_mean(
             f_u * l + f_v * m + f_w * n
         )
@@ -236,7 +236,7 @@ class WAN3DNS:
         return weak_continuity + weak_momentum
     
     def beltrami_flow(self, x, y, z, t):
-        """Beltrami流动的解析解"""
+        """Analytical solution for Beltrami flow"""
         a, d = 1.0, 1.0
         u = -a * (np.exp(a*x) * np.sin(a*y + d*z) + np.exp(a*z) * np.cos(a*x + d*y)) * np.exp(-d*d*t)
         v = -a * (np.exp(a*y) * np.sin(a*z + d*x) + np.exp(a*x) * np.cos(a*y + d*z)) * np.exp(-d*d*t)
@@ -251,20 +251,20 @@ class WAN3DNS:
         return u, v, w, p
     
     def calculate_l2_errors(self, sess, x_test):
-        """计算相对L²误差"""
-        # 计算解析解
+        """Calculate relative L² errors"""
+        # Calculate analytical solution
         u_true, v_true, w_true, p_true = self.beltrami_flow(
             x_test[:, 0], x_test[:, 1], x_test[:, 2], x_test[:, 3]
         )
         
-        # 获取预测解
+        # Get predicted solution
         u_v_w_p_pred = sess.run(self.u_test, feed_dict={self.x_test: x_test})
-        u_pred = u_v_w_p_pred[:, 0]  # 第一个分量是u
-        v_pred = u_v_w_p_pred[:, 1]  # 第二个分量是v
-        w_pred = u_v_w_p_pred[:, 2]  # 第三个分量是w
-        p_pred = u_v_w_p_pred[:, 3]  # 第四个分量是p
+        u_pred = u_v_w_p_pred[:, 0]  # First component is u
+        v_pred = u_v_w_p_pred[:, 1]  # Second component is v
+        w_pred = u_v_w_p_pred[:, 2]  # Third component is w
+        p_pred = u_v_w_p_pred[:, 3]  # Fourth component is p
         
-        # 计算相对L²误差
+        # Calculate relative L² errors
         u_error = np.sqrt(np.mean((u_pred - u_true)**2)) / np.sqrt(np.mean(u_true**2))
         v_error = np.sqrt(np.mean((v_pred - v_true)**2)) / np.sqrt(np.mean(v_true**2))
         w_error = np.sqrt(np.mean((w_pred - w_true)**2)) / np.sqrt(np.mean(w_true**2))
@@ -273,11 +273,11 @@ class WAN3DNS:
         return u_error, v_error, w_error, p_error
     
     def build(self):
-        # 初始化权重和偏置
+        # Initialize weights and biases
         self.weights1, self.biases1 = self.initialize_nn(4, 4, self.layers, "u_net")
         self.weights2, self.biases2 = self.initialize_nn(4, 4, self.layers, "v_net")
         
-        # 占位符
+        # Placeholders
         with tf.compat.v1.name_scope('placeholder'):
             self.x_dm = tf.compat.v1.placeholder(tf.float32, shape=[None, self.dim], name='x_dm')
             self.x_bd = tf.compat.v1.placeholder(tf.float32, shape=[None, self.dim], name='x_bd')
@@ -292,28 +292,28 @@ class WAN3DNS:
             self.p_ini = tf.compat.v1.placeholder(tf.float32, shape=[None, 1], name='p_ini')
             self.x_test = tf.compat.v1.placeholder(tf.float32, shape=[None, self.dim], name='x_test')
         
-        # 获取解和测试函数及其梯度
+        # Get solution and test functions and their gradients
         name_u = 'net_u'
         name_v = 'net_v'
         
         self.u_val, grad_u, second_deriv_u = self.grad_u(self.x_dm, name_u)
         self.v_val, grad_v = self.grad_v(self.x_dm, name_v)
 
-        # 获取边界上的解
+        # Get solution on boundary
         u_bd_pred, _, _ = self.grad_u(self.x_bd, name_u)
         
-        # 获取初始条件上的解
+        # Get solution on initial condition
         u_ini_pred, _, _ = self.grad_u(self.x_ini, name_u)
         
-        # 获取测试集上的解
+        # Get solution on test set
         self.u_test, _, _ = self.grad_u(self.x_test, name_u)
         
-        # 从v网络的输出创建测试函数
+        # Create test functions from v network output
         self.s_test_func, self.v_test_func = self.create_test_functions_from_v_output(
             self.v_val, self.x_dm
         )
         
-        # 计算弱形式残差
+        # Calculate weak form residual
         u_component = self.u_val[:, 0:1]
         v_component = self.u_val[:, 1:2]
         w_component = self.u_val[:, 2:3]
@@ -328,35 +328,35 @@ class WAN3DNS:
             self.x_dm
         )
 
-        # 边界条件损失
+        # Boundary condition loss
         loss_bd_u = tf.reduce_mean(tf.square(u_bd_pred[:, 0:1] - self.u_bd))
         loss_bd_v = tf.reduce_mean(tf.square(u_bd_pred[:, 1:2] - self.v_bd))
         loss_bd_w = tf.reduce_mean(tf.square(u_bd_pred[:, 2:3] - self.w_bd))
         loss_bd_p = tf.reduce_mean(tf.square(u_bd_pred[:, 3:4] - self.p_bd))
         self.loss_bd = self.beta_bd * (loss_bd_u + loss_bd_v + loss_bd_w + loss_bd_p)
 
-        # 初始条件损失
+        # Initial condition loss
         loss_ini_u = tf.reduce_mean(tf.square(u_ini_pred[:, 0:1] - self.u_ini))
         loss_ini_v = tf.reduce_mean(tf.square(u_ini_pred[:, 1:2] - self.v_ini))
         loss_ini_w = tf.reduce_mean(tf.square(u_ini_pred[:, 2:3] - self.w_ini))
         loss_ini_p = tf.reduce_mean(tf.square(u_ini_pred[:, 3:4] - self.p_ini))
         self.loss_ini = self.beta_bd * (loss_ini_u + loss_ini_v + loss_ini_w + loss_ini_p)
 
-        # 总损失
+        # Total loss
         self.loss_u = self.loss_int + 1000 * (self.loss_bd + self.loss_ini)
         
-        # 使用 tf.debugging.check_numerics 检查数值
+        # Use tf.debugging.check_numerics to check numerical values
         self.loss_u = tf.debugging.check_numerics(self.loss_u, "loss_u is NaN or Inf")
         self.loss_int = tf.debugging.check_numerics(self.loss_int, "loss_int is NaN or Inf")
 
-        # 测试函数网络的损失
+        # Test function network loss
         with tf.compat.v1.name_scope('loss_v'):
-            # 确保loss_int为正数且不为零
+            # Ensure loss_int is positive and non-zero
             safe_loss_int = tf.maximum(self.loss_int, 1e-8)
             self.loss_v = -tf.math.log(safe_loss_int)
             self.loss_v = tf.debugging.check_numerics(self.loss_v, "loss_v is NaN or Inf")
 
-        # 获取变量
+        # Get variables
         all_vars = tf.compat.v1.trainable_variables()
         u_vars = [v for v in all_vars if "u_net" in v.name]
         v_vars = [v for v in all_vars if "v_net" in v.name]
@@ -366,78 +366,78 @@ class WAN3DNS:
 
         if not u_vars:
             u_vars = all_vars
-            print("警告: 使用所有可训练变量作为u_vars")
+            print("Warning: Using all trainable variables as u_vars")
 
         if not v_vars:
             v_vars = all_vars
-            print("警告: 使用所有可训练变量作为v_vars")
+            print("Warning: Using all trainable variables as v_vars")
 
-        # 优化器 - 添加梯度裁剪
+        # Optimizer - add gradient clipping
         with tf.compat.v1.name_scope('optimizer'):
-            # 对于u网络
+            # For u network
             u_optimizer = tf.compat.v1.train.AdamOptimizer(self.u_rate)
             u_grads_and_vars = u_optimizer.compute_gradients(self.loss_u, var_list=u_vars)
             
-            # 过滤掉梯度为None的情况
+            # Filter out None gradients
             u_filtered_grads = []
             for grad, var in u_grads_and_vars:
                 if grad is not None:
                     clipped_grad = tf.clip_by_value(grad, -1.0, 1.0)
                     u_filtered_grads.append((clipped_grad, var))
                 else:
-                    print(f"警告: u_net 的梯度为 None: {var.name}")
+                    print(f"Warning: u_net gradient is None: {var.name}")
             
             self.u_opt = u_optimizer.apply_gradients(u_filtered_grads)
             
-            # 对于v网络
+            # For v network
             v_optimizer = tf.compat.v1.train.AdagradOptimizer(self.v_rate)
             v_grads_and_vars = v_optimizer.compute_gradients(self.loss_v, var_list=v_vars)
             
-            # 过滤掉梯度为None的情况
+            # Filter out None gradients
             v_filtered_grads = []
             for grad, var in v_grads_and_vars:
                 if grad is not None:
                     clipped_grad = tf.clip_by_value(grad, -1.0, 1.0)
                     v_filtered_grads.append((clipped_grad, var))
                 else:
-                    print(f"警告: v_net 的梯度为 None: {var.name}")
+                    print(f"Warning: v_net gradient is None: {var.name}")
             
             self.v_opt = v_optimizer.apply_gradients(v_filtered_grads)
     
     def train(self, sess, feed_dict):
         try:
-            # 训练u网络
+            # Train u network
             _, loss_u, loss_int, loss_bd, loss_ini = sess.run(
                 [self.u_opt, self.loss_u, self.loss_int, self.loss_bd, self.loss_ini], 
                 feed_dict=feed_dict
             )
             
-            # 训练v网络
+            # Train v network
             _, loss_v = sess.run([self.v_opt, self.loss_v], feed_dict=feed_dict)
             
             return loss_u, loss_v, loss_int, loss_bd, loss_ini
             
         except tf.errors.InvalidArgumentError as e:
-            print("错误: 计算图中检测到NaN或Inf")
+            print("Error: NaN or Inf detected in computation graph")
             print(e.message)
             
-            # 尝试重新初始化变量
-            print("尝试重新初始化变量...")
+            # Try to reinitialize variables
+            print("Attempting to reinitialize variables...")
             sess.run(tf.compat.v1.variables_initializer(tf.compat.v1.global_variables()))
             
             return np.nan, np.nan, np.nan, np.nan, np.nan
     
     def save_model(self, sess, filepath):
-        """保存模型"""
-        # 确保文件路径包含目录
+        """Save model"""
+        # Ensure file path contains directory
         if os.path.dirname(filepath):
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
         
-        # 保存模型
+        # Save model
         saver = tf.compat.v1.train.Saver()
         saver.save(sess, filepath)
         
-        # 保存配置
+        # Save configuration
         config_path = filepath + '_config.json'
         with open(config_path, 'w') as f:
             json.dump({
@@ -458,13 +458,13 @@ class WAN3DNS:
         print(f"Model has been saved at {filepath}")
     
     def load_model(self, sess, filepath):
-        """加载模型"""
-        # 加载配置
+        """Load model"""
+        # Load configuration
         config_path = filepath + '_config.json'
         with open(config_path, 'r') as f:
             model_config = json.load(f)
         
-        # 重新初始化模型参数
+        # Reinitialize model parameters
         self.lowb = np.array(model_config['lowb'])
         self.upb = np.array(model_config['upb'])
         self.beta_int = model_config['beta_int']
@@ -479,35 +479,35 @@ class WAN3DNS:
         self.Re = model_config['Re']
         self.nu = 1.0 / self.Re
         
-        # 重新构建计算图
+        # Rebuild computation graph
         self.build()
         
-        # 加载模型权重
+        # Load model weights
         saver = tf.compat.v1.train.Saver()
         saver.restore(sess, filepath)
         
-        print(f"模型已从 {filepath} 加载")
+        print(f"Model loaded from {filepath}")
 
 
-# 使用示例
+# Usage example
 if __name__ == '__main__':
-    # 添加命令行参数解析
-    parser = argparse.ArgumentParser(description='运行WAN3DNS模型')
+    # Add command line argument parsing
+    parser = argparse.ArgumentParser(description='Run WAN3DNS model')
     parser.add_argument('-c', '--config', type=str, default='config.json',
-                        help='配置文件路径 (默认: config.json)')
+                        help='Configuration file path (default: config.json)')
     parser.add_argument('-m', '--model', type=str, default='best_model_beltrami.ckpt',
-                        help='模型保存路径 (默认: best_model_beltrami.ckpt)')
+                        help='Model save path (default: best_model_beltrami.ckpt)')
     parser.add_argument('-o', '--output', type=str, default='WAN3DNS_beltrami_results.npy',
-                        help='结果输出文件路径 (默认: WAN3DNS_beltrami_results.npy)')
+                        help='Result output file path (default: WAN3DNS_beltrami_results.npy)')
     
     args = parser.parse_args()
     
-    # 读取配置文件
+    # Read configuration file
     config_path = args.config
     with open(config_path, 'r') as f:
         config = json.load(f)
     
-    # 初始化
+    # Initialize
     lowb = np.array([-1.0, -1.0, -1.0, 0.0])  # x, y, z, t
     upb = np.array([1.0, 1.0, 1.0, 1.0])
     
@@ -524,10 +524,10 @@ if __name__ == '__main__':
         Re=config['Re']
     )
 
-    # 构建计算图
+    # Build computation graph
     model.build()
     
-    # 创建测试网格
+    # Create test grid
     nx, ny, nz, nt = 20, 20, 20, 10
     x = np.linspace(-1.0, 1.0, nx)
     y = np.linspace(-1.0, 1.0, ny)
@@ -553,7 +553,7 @@ if __name__ == '__main__':
         start_time = time.time()
         
         for step in range(config['training_epochs']):
-            # 生成训练数据
+            # Generate training data
             x_dm = np.random.uniform(lowb, upb, (model.dm_size, model.dim))
             x_bd = np.random.uniform(lowb, upb, (model.bd_size, model.dim))
             x_ini = np.concatenate([
@@ -561,7 +561,7 @@ if __name__ == '__main__':
                 np.zeros((model.bd_size, 1))
             ], axis=1)
             
-            # 计算边界条件（Beltrami流动的精确解）
+            # Calculate boundary conditions (exact solution for Beltrami flow)
             u_bd, v_bd, w_bd, p_bd = model.beltrami_flow(
                 x_bd[:, 0], x_bd[:, 1], x_bd[:, 2], x_bd[:, 3]
             )
@@ -570,7 +570,7 @@ if __name__ == '__main__':
             w_bd = w_bd.reshape(-1, 1)
             p_bd = p_bd.reshape(-1, 1)
             
-            # 计算初始条件
+            # Calculate initial conditions
             u_ini, v_ini, w_ini, p_ini = model.beltrami_flow(
                 x_ini[:, 0], x_ini[:, 1], x_ini[:, 2], x_ini[:, 3]
             )
@@ -593,19 +593,19 @@ if __name__ == '__main__':
                 model.p_ini: p_ini,
             }
             
-            # 训练
+            # Training
             loss_u, loss_v, loss_int, loss_bd, loss_ini = model.train(sess, feed_dict)
             
-            # 早停机制
+            # Early stopping mechanism
             if loss_u < best_loss_u:
                 best_loss_u = loss_u
                 best_step = step
                 patience_counter = 0
                 
-                # 保存最佳模型
+                # Save best model
                 model.save_model(sess, args.model)
                 
-                # 计算当前最佳模型的L2误差
+                # Calculate L2 error for current best model
                 l2_u, l2_v, l2_w, l2_p = model.calculate_l2_errors(sess, x_test)
                 best_l2_u = l2_u
                 best_l2_v = l2_v
@@ -617,32 +617,32 @@ if __name__ == '__main__':
                 patience_counter += 1
                 
             if patience_counter >= patience:
-                print(f"early stop at {step}, because for {patience} steps no improvement")
+                print(f"Early stopping at {step}, because no improvement for {patience} steps")
                 break
             
             if step % 100 == 0:
                 print(f'Step: {step}, Loss_u: {loss_u}, Loss_v: {loss_v}, Loss_int: {loss_int}')
-                print(f'Best stop: {best_step}, Best loss: {best_loss_u}')
+                print(f'Best step: {best_step}, Best loss: {best_loss_u}')
                 print(f'Best L2 error - u: {best_l2_u}, v: {best_l2_v}, w: {best_l2_w}, p: {best_l2_p}')
                 
-                # 如果损失为NaN，停止训练
+                # Stop training if loss is NaN
                 if np.isnan(loss_u) or np.isnan(loss_v) or np.isnan(loss_int):
-                    print("训练因NaN损失而停止")
+                    print("Training stopped due to NaN loss")
                     break
         
-        # 加载最佳模型
+        # Load best model
         model.load_model(sess, args.model)
         
-        # 记录结束时间
+        # Record end time
         end_time = time.time()
         training_time = end_time - start_time
         
-        # 计算最终的L2误差和残差
+        # Calculate final L2 errors and residual
         l2_u, l2_v, l2_w, l2_p = model.calculate_l2_errors(sess, x_test)
-        residual = best_loss_u  # 使用最佳损失作为残差
+        residual = best_loss_u  # Use best loss as residual
         
         # print results
-        print(f"\nfinal result:")
+        print(f"\nFinal results:")
         print(f"Best step: {best_step}")
         print(f"Best loss: {best_loss_u}")
         print(f"Best relative error - u: {l2_u}")
@@ -660,17 +660,17 @@ if __name__ == '__main__':
         # prepare data for saving
         # get predictions on test set
         u_v_w_p_pred = sess.run(model.u_test, feed_dict={model.x_test: x_test})
-        u_pred = u_v_w_p_pred[:, 0]  # 第一个分量是u
-        v_pred = u_v_w_p_pred[:, 1]  # 第二个分量是v
-        w_pred = u_v_w_p_pred[:, 2]  # 第三个分量是w
-        p_pred = u_v_w_p_pred[:, 3]  # 第四个分量是p
+        u_pred = u_v_w_p_pred[:, 0]  # First component is u
+        v_pred = u_v_w_p_pred[:, 1]  # Second component is v
+        w_pred = u_v_w_p_pred[:, 2]  # Third component is w
+        p_pred = u_v_w_p_pred[:, 3]  # Fourth component is p
         
-        # 计算精确解
+        # Calculate exact solution
         u_true, v_true, w_true, p_true = model.beltrami_flow(
             x_test[:, 0], x_test[:, 1], x_test[:, 2], x_test[:, 3]
         )
         
-        # 准备保存的数据
+        # Prepare data for saving
         results = {
             'grid_points': x_test,
             'grid_shape': (nx, ny, nz, nt),
@@ -699,6 +699,6 @@ if __name__ == '__main__':
             'best_step': best_step
         }
         
-        # 保存所有数据
+        # Save all data
         np.save(args.output, results, allow_pickle=True)
-        print(f"Results has been saved: {args.output}")
+        print(f"Results have been saved: {args.output}")
